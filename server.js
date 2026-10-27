@@ -291,11 +291,11 @@ app.post("/api/gmail/drafts/:id/approve", async (req, res, next) => {
     const { connection } = requireGmailTestConnection(req);
     const catalog = await getViaSocket().catalog.versions(connection.serviceId);
     const action = catalog?.actions?.find((item) => item.name === "Create Email Draft");
-    if (!action?.action_id) return res.status(409).json({ error: "Create Email Draft is not available in the live Gmail catalog. Nothing was executed." });
+    if (!action?.action_version_id) return res.status(409).json({ error: "Create Email Draft has no published action version in the live Gmail catalog. Nothing was executed." });
 
     // Only invoke the catalog-confirmed draft action, with plain-text fields.
     // This endpoint never invokes a send-email action.
-    const result = await getViaSocket().runAction(connection.scriptId, action.action_id, {
+    const result = await getViaSocket().runAction(connection.scriptId, action.action_version_id, {
       to: draft.to,
       subject: draft.subject,
       messageType: "text",
