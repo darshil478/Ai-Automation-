@@ -204,6 +204,78 @@ app.get("/api/integrations/status", (req, res, next) => {
   }
 });
 
+
+function requireGmailTestConnection(req) {
+  const userId = getProductUserId(req);
+  const entry = [...testConnections.entries()].find(([key, value]) =>
+    key.startsWith(userId + ":") && /gmail/i.test(value.appName)
+  );
+  if (!entry) {
+    const error = new Error("No verified Gmail connection is available in this server process. Reconnect Gmail first.");
+    error.status = 409;
+    throw error;
+  }
+  return { userId, connection: entry[1] };
+}
+
+// Prepare a draft using the actual published Gmail action, but never execute
+// an action that sends mail. The draft requires an explicit human approval.
+app.post("/api/gmail/drafts/prepare", async (req, res, next) => {
+  try {
+    const { connection } = requireGmailTestConnection(req);
+    const { to, subject, body } = req.body || {};
+    const validEmail = typeof to === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to);
+    if (!validEmail || typeof subject !== "string" || !subject.trim() || subject.length > 250 ||
+        typeof body !== "string" || !body.trim() || body.length > 20000) {
+      return res.status(400).json({ error: "Provide a valid recipient email, a subject (max 250 chars), and a body (max 20,000 chars)." });
+    }
+    const draftAction = connection.actions.find((action) => /create.*draft|draft.*create/i.test(action.name));
+    if (!draftAction) {
+      return res.status(409).json({
+        error: "The live Gmail catalog did not return a published Create Draft action. No action was executed.",
+        availableActions: connection.actions.map((action) => action.name)
+      });
+    }
+    const pending = {
+      id: require("node:crypto").randomUUID(),
+      to, subject: subject.trim(), body: body.trim(),
+      actionName: draftAction.name,
+      status: "awaiting_approval",
+      createdAt: new Date().toISOString()
+    };
+    // Demo-only in-memory approval queue; no Gmail action has run yet.
+    globalThis.__flowPilotPendingDrafts ||= new Map();
+    globalThis.__flowPilotPendingDrafts.set(pending.id, pending);
+    res.status(201).json({
+      draft: { id: pending.id, to: pending.to, subject: pending.subject, body: pending.body, status: pending.status, createdAt: pending.createdAt },
+      message: "Prepared for human review only. This has NOT created a Gmail draft or sent an email."
+    });
+  } catch (error) { next(error); }
+});
+
+app.get("/api/gmail/drafts/pending", (_req, res) => {
+  const queue = globalThis.__flowPilotPendingDrafts || new Map();
+  res.json([...queue.values()].filter((draft) => draft.status === "awaiting_approval").map((draft) => ({
+    id: draft.id, to: draft.to, subject: draft.subject, body: draft.body,
+    status: draft.status, createdAt: draft.createdAt
+  })));
+});
+
+// Approval only marks the proposal approved. It intentionally does not send
+// mail; wiring actual Gmail Create Draft requires a confirmed action input schema.
+app.post("/api/gmail/drafts/:id/approve", (req, res) => {
+  const queue = globalThis.__flowPilotPendingDrafts || new Map();
+  const draft = queue.get(req.params.id);
+  if (!draft) return res.status(404).json({ error: "Draft proposal not found; it may have expired after a server restart." });
+  if (draft.status !== "awaiting_approval") return res.status(409).json({ error: "This proposal is not awaiting approval." });
+  draft.status = "approved_for_draft_creation";
+  draft.approvedAt = new Date().toISOString();
+  res.json({
+    draft: { id: draft.id, to: draft.to, subject: draft.subject, status: draft.status, approvedAt: draft.approvedAt },
+    message: "Approved for the next implementation step only. No Gmail draft was created and no email was sent."
+  });
+});
+
 app.use((error, _req, res, _next) => {
   const status = Number(error.status) || 502;
   res.status(status).json({
