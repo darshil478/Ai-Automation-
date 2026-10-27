@@ -192,6 +192,24 @@ app.post("/api/integrations/gmail/verify", async (req, res, next) => {
   }
 });
 
+app.get("/api/integrations/gmail/actions", async (req, res, next) => {
+  try {
+    const { userId, connection } = requireGmailTestConnection(req);
+    const catalog = await getViaSocket().catalog.versions(connection.serviceId);
+    if (!catalog) return res.status(502).json({ error: "Gmail is missing from the live viaSocket catalog." });
+    res.set("Cache-Control", "no-store").json({
+      app: catalog.service.name,
+      actions: catalog.actions.map((action) => ({
+        name: action.name,
+        description: action.description || "",
+        actionId: action.action_id,
+        versionId: action.action_version_id,
+        inputSchema: action.input_schema || {}
+      }))
+    });
+  } catch (error) { next(error); }
+});
+
 app.get("/api/integrations/status", (req, res, next) => {
   try {
     const userId = getProductUserId(req);
