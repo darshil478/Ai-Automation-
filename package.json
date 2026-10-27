@@ -1,18 +1,22 @@
 {
-  "name": "aiautomation",
+  "name": "flowpilot-ai",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "FlowPilot AI business operations automation agent and viaSocket integration layer",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "test": "node --test",
+    "check:viasocket": "node viasocket-check.mjs ."
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["ai", "automation", "viasocket", "business-operations"],
   "license": "ISC",
   "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "dotenv": "^18.0.9",
     "express": "^5.3.0",
-    "jsonwebtoken": "^9.0.3"
+    "viasocket-apps": "^0.8.0"
   }
 }
