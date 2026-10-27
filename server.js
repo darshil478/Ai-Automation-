@@ -236,6 +236,60 @@ function requireGmailTestConnection(req) {
   return { userId, connection: entry[1] };
 }
 
+// A deterministic workflow runner: evaluate a lead signal, score urgency, draft a
+// contextual follow-up, and stop at a human approval gate before any Gmail action.
+app.post("/api/workflows/lead-followup/run", async (req, res, next) => {
+  try {
+    requireGmailTestConnection(req);
+    const { leadName, company, to, stage, lastContactDays, notes } = req.body || {};
+    const validEmail = typeof to === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to);
+    const days = Number(lastContactDays);
+    if (!validEmail || typeof leadName !== "string" || !leadName.trim() ||
+        typeof company !== "string" || !company.trim() ||
+        !Number.isInteger(days) || days < 0 || days > 365 ||
+        typeof stage !== "string" || !["New lead", "Demo completed", "Proposal sent", "Negotiation"].includes(stage)) {
+      return res.status(400).json({ error: "Provide leadName, company, valid recipient email, a supported stage, and lastContactDays (0–365)." });
+    }
+    const clean = (value, max=1000) => String(value || "").trim().slice(0, max);
+    const name = clean(leadName, 100), org = clean(company, 120), context = clean(notes, 1000);
+    const priority = days >= 7 ? "High" : days >= 3 ? "Medium" : "Low";
+    const subject = stage === "Proposal sent" ? "Following up on the proposal for " + org
+      : stage === "Demo completed" ? "Next steps after our demo — " + org
+      : stage === "Negotiation" ? "Checking in on next steps — " + org
+      : "Thanks for your interest, " + name;
+    const detail = context ? "\n\nFor context, I noted: " + context : "";
+    const body = "Hi " + name + ",\n\n" +
+      (stage === "Proposal sent" ? "I wanted to follow up on the proposal we shared with " + org + ". I’d be happy to answer questions or discuss any adjustments that would make it a better fit."
+      : stage === "Demo completed" ? "Thanks again for taking the time to see the demo. I’d love to hear your thoughts and help clarify any questions from your team."
+      : stage === "Negotiation" ? "I wanted to check in on our discussion and see whether there’s anything else you need from us to decide on next steps."
+      : "Thanks for your interest in " + org + ". I’d be glad to learn more about your priorities and share the most relevant next steps.") +
+      detail + "\n\nWould a brief 15-minute call this week work for you?\n\nBest,\nFlowPilot Team";
+    const pending = {
+      id: require("node:crypto").randomUUID(), to: to.trim(), subject, body,
+      actionName: "Create Email Draft", status: "awaiting_approval",
+      workflow: "lead-follow-up", leadName: name, company: org, stage, lastContactDays: days,
+      priority, createdAt: new Date().toISOString(),
+      steps: [
+        { name: "Lead signal received", status: "completed", detail: stage + " · no reply for " + days + " day(s)" },
+        { name: "Rule-based priority scoring", status: "completed", detail: priority + " priority" },
+        { name: "Personalized follow-up generated", status: "completed", detail: "Used lead, company, stage and notes" },
+        { name: "Human approval gate", status: "waiting", detail: "Review the draft before creating it in Gmail" },
+        { name: "Gmail Create Email Draft", status: "blocked_pending_approval", detail: "No external action run yet" }
+      ]
+    };
+    globalThis.__flowPilotPendingDrafts ||= new Map();
+    globalThis.__flowPilotPendingDrafts.set(pending.id, pending);
+    res.status(201).json({
+      workflow: "lead-follow-up",
+      runId: pending.id,
+      priority,
+      steps: pending.steps,
+      draft: { id: pending.id, to: pending.to, subject: pending.subject, body: pending.body, status: pending.status },
+      message: "Workflow ran through preparation and paused for approval. No email was sent or Gmail draft created yet."
+    });
+  } catch (error) { next(error); }
+});
+
 // Prepare a draft using the actual published Gmail action, but never execute
 // an action that sends mail. The draft requires an explicit human approval.
 app.post("/api/gmail/drafts/prepare", async (req, res, next) => {
