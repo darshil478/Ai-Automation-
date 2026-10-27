@@ -1,18 +1,45 @@
-<!DOCTYPE html>
-<html>
-  <head><title>viaSocket test</title></head>
-  <body>
-    <h1>My App</h1>
-
-    <script>
-      (async () => {
-        const { token } = await fetch("/api/viasocket-token").then(r => r.json());
-        const s = document.createElement("script");
-        s.id = "viasocket-embed";
-        s.src = "https://embed.viasocket.com/embed.js";
-        s.setAttribute("embedToken", token);
-        document.body.appendChild(s);
-      })();
-    </script>
-  </body>
-</html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlowPilot AI — Gmail Integration</title>
+<style>
+:root{font-family:Inter,system-ui,sans-serif;color:#172033;background:#f5f7fb}body{max-width:900px;margin:48px auto;padding:0 20px}
+.panel{background:white;border:1px solid #e1e6ef;border-radius:16px;padding:24px;margin:16px 0;box-shadow:0 4px 18px #17203308}
+p{line-height:1.55;color:#526078}button{border:0;border-radius:9px;background:#2457d6;color:white;padding:12px 16px;font-weight:650;cursor:pointer}
+button:disabled{opacity:.5;cursor:wait}.secondary{background:#e9eefb;color:#203a78}.status{padding:12px;border-radius:8px;background:#f0f3f9;white-space:pre-wrap;overflow-wrap:anywhere}.muted{font-size:13px;color:#68758b}
+</style></head>
+<body>
+<h1>FlowPilot AI</h1><p>Intelligent Business Operations Automation Agent</p>
+<section class="panel">
+<h2>Connect Gmail (test account)</h2>
+<p>Authorize Gmail through viaSocket. The first verification is read-only: it checks the live catalog and confirms the enabled connection. No email will be sent.</p>
+<button id="connect">Connect Gmail</button> <button id="refresh" class="secondary">Refresh status</button>
+<p id="status" class="status" role="status">Checking server setup…</p>
+<p class="muted">Never paste your signing secret into this page or chat. It stays in the server-side .env file.</p>
+</section>
+<section class="panel"><h2>Connection status</h2><div id="connections">Loading…</div></section>
+<section class="panel"><h2>Available Gmail actions</h2><div id="actions">Connect a test account to load verified actions.</div></section>
+<script type="module">
+import { connect } from "/vendor/viasocket-apps/browser.js";
+const status=document.querySelector("#status"), button=document.querySelector("#connect");
+const setStatus=(s)=>status.textContent=s;
+async function api(url,options={}){const response=await fetch(url,{...options,headers:{"Content-Type":"application/json",...(options.headers||{})}});const body=await response.json().catch(()=>({}));if(!response.ok)throw new Error(body.error||body.detail||("Request failed ("+response.status+")"));return body}
+async function refresh(){try{const result=await api("/api/integrations/status");const apps=result.apps||[];document.querySelector("#connections").textContent=apps.length?apps.map(a=>a.appName+" — connected").join("\n"):"No Gmail test connection confirmed in this running server process.";setStatus("Server reachable. Select Connect Gmail to authorize a test account.");}catch(e){setStatus("Setup error: "+e.message)}}
+button.addEventListener("click",async()=>{button.disabled=true;try{
+setStatus("Looking up Gmail in the live viaSocket catalog…");
+const apps=await api("/api/integrations/search?q=Gmail");
+const gmail=apps.find(a=>String(a.name).toLowerCase()==="gmail")||apps.find(a=>String(a.name).toLowerCase().includes("gmail"));
+if(!gmail)throw new Error("Gmail was not returned by the live catalog.");
+const {token}=await api("/api/viasocket-token");
+setStatus("A viaSocket popup will open. Sign in to your test Gmail account and approve the requested access.");
+const result=await connect({embedToken:token,serviceId:gmail.serviceId});
+setStatus("Authorization returned. Verifying and enabling Gmail through the server SDK…");
+const verified=await api("/api/integrations/connection",{method:"POST",body:JSON.stringify({serviceId:gmail.serviceId,authId:result.authId})});
+document.querySelector("#actions").textContent=(verified.actions||[]).map(a=>a.name+" — "+a.description).join("\n")||"No published actions returned.";
+setStatus("REAL SDK CONNECTION VERIFIED\nApp: "+verified.appName+"\n"+verified.verification+"\nNo email was sent.");
+await refresh();
+}catch(e){setStatus("Not connected: "+e.message+"\nIf the popup was cancelled, click Connect Gmail and try again.");}finally{button.disabled=false}});
+document.querySelector("#refresh").addEventListener("click",refresh);
+refresh();
+</script></body></html>
