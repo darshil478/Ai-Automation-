@@ -144,6 +144,54 @@ app.post("/api/integrations/connection", async (req, res, next) => {
   }
 });
 
+
+app.post("/api/integrations/gmail/verify", async (req, res, next) => {
+  try {
+    const userId = getProductUserId(req);
+    const saved = [...testConnections.entries()].find(([key, value]) =>
+      key.startsWith(userId + ":") && /gmail/i.test(value.appName)
+    )?.[1];
+    if (!saved) {
+      return res.status(409).json({
+        verified: false,
+        error: "No Gmail connection is stored in this running server process. Reconnect Gmail first."
+      });
+    }
+
+    // Two real, read-only SDK calls: fetch the current Gmail action catalog and
+    // list this product user's viaSocket connections. No email action is executed.
+    const viasocket = getViaSocket();
+    const user = viasocket.user(userId);
+    const [catalog, connections] = await Promise.all([
+      viasocket.catalog.versions(saved.serviceId),
+      user.listConnections()
+    ]);
+    if (!catalog) {
+      return res.status(502).json({ verified: false, error: "Gmail was not found in the live viaSocket catalog." });
+    }
+
+    res.json({
+      verified: true,
+      app: catalog.service.name,
+      connectionListRead: true,
+      connectionCount: connections.length,
+      publishedActions: catalog.actions.map((action) => ({
+        name: action.name,
+        actionId: action.action_id,
+        versionId: action.action_version_id
+      })),
+      publishedTriggers: catalog.triggers.map((trigger) => ({
+        name: trigger.name,
+        triggerId: trigger.trigger_id,
+        versionId: trigger.trigger_version_id
+      })),
+      note: "Read-only SDK calls succeeded. No Gmail message was sent or drafted."
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get("/api/integrations/status", (req, res, next) => {
   try {
     const userId = getProductUserId(req);
