@@ -367,6 +367,46 @@ app.post("/api/gmail/drafts/:id/approve", async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+globalThis.__flowPilotAudit ||= [];
+app.get("/api/workflows/audit", (_req, res) => {
+  res.json({ persistence: "memory-only", events: (globalThis.__flowPilotAudit || []).slice(-100).reverse() });
+});
+function auditEvent(event) {
+  globalThis.__flowPilotAudit ||= [];
+  globalThis.__flowPilotAudit.push({ at: new Date().toISOString(), ...event });
+  if (globalThis.__flowPilotAudit.length > 500) globalThis.__flowPilotAudit.shift();
+}
+app.post("/api/webhooks/leads", async (req, res, next) => {
+  try {
+    const secret = process.env.FLOWPILOT_WEBHOOK_SECRET;
+    if (process.env.NODE_ENV === "production" && !secret) return res.status(503).json({ error: "Configure FLOWPILOT_WEBHOOK_SECRET before production webhook intake." });
+    if (secret && req.get("x-flowpilot-webhook-secret") !== secret) return res.status(401).json({ error: "Invalid webhook secret." });
+    const { leadName, company, to, stage, lastContactDays, notes } = req.body || {};
+    const validEmail = typeof to === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to);
+    const days = Number(lastContactDays);
+    const stages = ["New lead", "Demo completed", "Proposal sent", "Negotiation"];
+    if (!validEmail || typeof leadName !== "string" || !leadName.trim() || typeof company !== "string" || !company.trim() || !Number.isInteger(days) || days < 0 || days > 365 || !stages.includes(stage)) {
+      return res.status(400).json({ error: "Expected leadName, company, valid to email, stage, lastContactDays (0–365), and optional notes." });
+    }
+    const name = leadName.trim().slice(0,100), org = company.trim().slice(0,120), context = String(notes || "").trim().slice(0,1000);
+    const priority = days >= 7 ? "High" : days >= 3 ? "Medium" : "Low";
+    const subject = stage === "Proposal sent" ? "Following up on the proposal for " + org : stage === "Demo completed" ? "Next steps after our demo — " + org : stage === "Negotiation" ? "Checking in on next steps — " + org : "Thanks for your interest, " + name;
+    const opener = stage === "Proposal sent" ? "I wanted to follow up on the proposal we shared with " + org + ". I’d be happy to answer questions or discuss adjustments." : stage === "Demo completed" ? "Thanks again for taking the time to see the demo. I’d love to hear your thoughts and answer any questions." : stage === "Negotiation" ? "I wanted to check in on our discussion and see whether you need anything else from us to decide on next steps." : "Thanks for your interest in " + org + ". I’d be glad to learn more about your priorities and share relevant next steps.";
+    const body = "Hi " + name + ",\n\n" + opener + (context ? "\n\nFor context, I noted: " + context : "") + "\n\nWould a brief 15-minute call this week work for you?\n\nBest,\nFlowPilot Team";
+    const draft = { id: require("node:crypto").randomUUID(), to: to.trim(), subject, body, actionName: "Create Email Draft", status: "awaiting_approval", workflow: "lead-follow-up", leadName: name, company: org, stage, lastContactDays: days, priority, createdAt: new Date().toISOString() };
+    globalThis.__flowPilotPendingDrafts ||= new Map();
+    globalThis.__flowPilotPendingDrafts.set(draft.id, draft);
+    auditEvent({ event: "lead_webhook_received", leadName: name, company: org, priority, stage, status: draft.status, runId: draft.id });
+    res.status(202).json({ accepted: true, runId: draft.id, priority, status: draft.status, steps: [
+      { name: "Webhook trigger", status: "completed" }, { name: "Lead details validated", status: "completed" },
+      { name: "Rule-based classification", status: "completed", result: priority },
+      { name: "Follow-up proposal generated", status: "completed" },
+      { name: priority === "High" ? "Approval + task" : priority === "Medium" ? "Follow-up queue" : "Record + review", status: "awaiting_review" },
+      { name: "Audit trail", status: "completed", result: "memory-only" }
+    ], draft: { id: draft.id, to: draft.to, subject: draft.subject, body: draft.body }, message: "Webhook processed and proposal queued for review. No email was sent and no Gmail draft was created." });
+  } catch (error) { next(error); }
+});
+
 app.use((error, _req, res, _next) => {
   const status = Number(error.status) || 502;
   res.status(status).json({
