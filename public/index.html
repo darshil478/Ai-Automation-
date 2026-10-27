@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head><title>viaSocket test</title></head>
+  <body>
+    <h1>My App</h1>
+
+    <script>
+      (async () => {
+        const { token } = await fetch("/api/viasocket-token").then(r => r.json());
+        const s = document.createElement("script");
+        s.id = "viasocket-embed";
+        s.src = "https://embed.viasocket.com/embed.js";
+        s.setAttribute("embedToken", token);
+        document.body.appendChild(s);
+      })();
+    </script>
+  </body>
+</html>
