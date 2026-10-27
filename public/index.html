@@ -2,44 +2,63 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FlowPilot AI — Gmail Integration</title>
+<title>FlowPilot AI — Business Workflow Studio</title>
 <style>
-:root{font-family:Inter,system-ui,sans-serif;color:#172033;background:#f5f7fb}body{max-width:900px;margin:48px auto;padding:0 20px}
-.panel{background:white;border:1px solid #e1e6ef;border-radius:16px;padding:24px;margin:16px 0;box-shadow:0 4px 18px #17203308}
-p{line-height:1.55;color:#526078}button{border:0;border-radius:9px;background:#2457d6;color:white;padding:12px 16px;font-weight:650;cursor:pointer}
-button:disabled{opacity:.5;cursor:wait}.secondary{background:#e9eefb;color:#203a78}.status{padding:12px;border-radius:8px;background:#f0f3f9;white-space:pre-wrap;overflow-wrap:anywhere}.muted{font-size:13px;color:#68758b}
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;color:#eaf0ff;background:#0b1020;font-synthesis:none}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 15% 0%,#1a2b55 0,transparent 40%),#0b1020;min-height:100vh}
+main{max-width:1120px;margin:auto;padding:34px 22px 70px}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}.brand{display:flex;gap:12px;align-items:center}.logo{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,#65e4c2,#5d7cff);color:#071326;font-size:22px;font-weight:900}.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.16em;color:#81e6cd;font-weight:800}h1{font-size:clamp(32px,5vw,52px);line-height:1.03;letter-spacing:-.04em;margin:30px 0 12px}.gradient{background:linear-gradient(90deg,#8cf0d6,#8daaff);-webkit-background-clip:text;color:transparent}.lead{max-width:720px;color:#a8b5d1;line-height:1.65;font-size:16px}.pill{border:1px solid #344264;border-radius:999px;padding:8px 12px;color:#b8c9e8;font-size:12px}.layout{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;margin-top:28px}.card{background:#121a2e;border:1px solid #293653;border-radius:20px;padding:22px;box-shadow:0 15px 40px #0002}.card h2{margin:0 0 8px;font-size:19px}.sub{color:#9aa9c7;font-size:13px;line-height:1.55;margin:0 0 18px}.steps{display:grid;gap:10px}.step{display:flex;gap:13px;align-items:flex-start;background:#0d1527;border:1px solid #263451;border-radius:13px;padding:13px}.num{flex:none;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#20375a;color:#8ff0d6;font-weight:800}.step b{display:block;font-size:14px;margin:1px 0 4px}.step span{font-size:12px;color:#9eacc8;line-height:1.45}.tag{font-size:10px;color:#83ebd1;border:1px solid #2a5b59;border-radius:999px;padding:4px 7px;margin-left:auto;white-space:nowrap}label{display:block;font-size:12px;color:#aebbd5;margin:14px 0 7px}input,textarea,select{width:100%;border:1px solid #354563;border-radius:10px;background:#0a1222;color:#f0f4ff;padding:12px;font:inherit;font-size:14px;outline:none}textarea{min-height:128px;resize:vertical;line-height:1.5}input:focus,textarea:focus,select:focus{border-color:#7ce6d0}button{border:0;border-radius:10px;background:linear-gradient(110deg,#7ce6d0,#8ca9ff);color:#081426;padding:12px 15px;font-weight:800;cursor:pointer}button:disabled{opacity:.45;cursor:wait}.secondary{background:#202d47;color:#dce7ff;border:1px solid #354563}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.status{background:#0a1222;border:1px solid #2c3a56;border-radius:10px;padding:12px;color:#b7c7e4;font-size:13px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:14px}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}.metric{background:#0c1426;border:1px solid #263451;border-radius:12px;padding:12px}.metric strong{font-size:19px;display:block}.metric span{font-size:11px;color:#96a6c5}.wide{grid-column:1/-1}.small{font-size:11px;color:#8292b1;line-height:1.5;margin-top:14px}.hidden{display:none}.event{border-left:2px solid #4b7892;padding:2px 0 12px 13px;margin-left:7px;color:#b9c9e5;font-size:13px}.event:last-child{padding-bottom:0}.event small{display:block;color:#8192b2;margin-top:3px}@media(max-width:780px){.layout{grid-template-columns:1fr}main{padding:24px 14px}.wide{grid-column:auto}}
 </style></head>
-<body>
-<h1>FlowPilot AI</h1><p>Intelligent Business Operations Automation Agent</p>
-<section class="panel">
-<h2>Connect Gmail (test account)</h2>
-<p>Authorize Gmail through viaSocket. The first verification is read-only: it checks the live catalog and confirms the enabled connection. No email will be sent.</p>
-<button id="connect">Connect Gmail</button> <button id="refresh" class="secondary">Refresh status</button>
-<p id="status" class="status" role="status">Checking server setup…</p>
-<p class="muted">Never paste your signing secret into this page or chat. It stays in the server-side .env file.</p>
+<body><main>
+<header class="top"><div class="brand"><div class="logo">F</div><div><strong>FlowPilot AI</strong><div class="sub" style="margin:3px 0 0">Business Workflow Studio</div></div></div><span class="pill">DEMO MODE · HUMAN-IN-THE-LOOP</span></header>
+<h1>Turn business signals into<br><span class="gradient">actions that move work forward.</span></h1>
+<p class="lead">A practical automation example: spot a warm lead, prepare a personalized follow-up, review it, then create a Gmail draft through viaSocket. No automatic sending. You stay in control.</p>
+<div class="layout">
+<section class="card"><h2>01 / Workflow blueprint</h2><p class="sub">Example: lead follow-up autopilot for a small business sales team.</p>
+<div class="steps">
+<div class="step"><div class="num">1</div><div><b>Trigger · Lead needs follow-up</b><span>Demo CRM signal: a prospect requested a proposal and has not replied for 3 days.</span></div><span class="tag">DEMO EVENT</span></div>
+<div class="step"><div class="num">2</div><div><b>Enrich · Build context</b><span>Use the lead name, company, last interaction and next step to personalize the message.</span></div><span class="tag">RULES</span></div>
+<div class="step"><div class="num">3</div><div><b>Generate · Draft a follow-up</b><span>Prepare a concise email with a clear, low-pressure call to action.</span></div><span class="tag">AI-READY</span></div>
+<div class="step"><div class="num">4</div><div><b>Approve · Human review</b><span>Review recipient, subject and body before any external action is called.</span></div><span class="tag">GUARDRAIL</span></div>
+<div class="step"><div class="num">5</div><div><b>Act · Create Gmail draft</b><span>On approval, call the published viaSocket Create Email Draft action. Sending is not part of this workflow.</span></div><span class="tag">VIASOCKET</span></div>
+</div>
+<div class="metrics"><div class="metric"><strong>5</strong><span>Workflow stages</span></div><div class="metric"><strong>1</strong><span>Human approval gate</span></div><div class="metric"><strong>0</strong><span>Auto-sent emails</span></div></div>
 </section>
-<section class="panel"><h2>Connection status</h2><div id="connections">Loading…</div></section>
-<section class="panel"><h2>Available Gmail actions</h2><div id="actions">Connect a test account to load verified actions.</div></section>
+<section class="card"><h2>02 / Run the example</h2><p class="sub">Choose a sample lead, edit the message, and create an approval proposal.</p>
+<label for="scenario">Sample business scenario</label><select id="scenario"><option value="proposal">Proposal follow-up · Northstar Studio</option><option value="demo">Product demo follow-up · Acme Retail</option><option value="invoice">Invoice reminder · Blue Oak Café</option></select>
+<label for="to">Recipient email (use an address you control for testing)</label><input id="to" type="email" placeholder="you@example.com">
+<label for="subject">Email subject</label><input id="subject" maxlength="250" value="Following up on the proposal">
+<label for="body">Email body</label><textarea id="body">Hi there,
+
+I wanted to follow up on the proposal I shared earlier. I’d be happy to answer any questions or adjust the scope to fit your priorities.
+
+Would a quick 15-minute call this week be useful?
+
+Best,
+Your Name</textarea>
+<div class="actions"><button id="prepare">Prepare for review →</button><button id="connect" class="secondary">Connect / refresh Gmail</button></div>
+<div id="status" class="status" role="status">Ready. Connect Gmail before running the live draft action.</div>
+<p class="small">Safety: preparing only queues a proposal. Gmail draft creation happens only after you explicitly approve it. Test with an address you control. Demo queue is in memory and resets when the server restarts.</p>
+</section>
+<section class="card"><h2>03 / Approval desk</h2><p class="sub">Nothing reaches Gmail until you review and approve the proposal.</p><div id="review" class="status">No proposal prepared yet.</div><div class="actions"><button id="approve" disabled>Approve & create Gmail draft</button><button id="refresh" class="secondary">Refresh connection</button></div></section>
+<section class="card"><h2>04 / Run log</h2><p class="sub">A transparent, human-readable trail of the demo workflow.</p><div id="log"><div class="event">Workflow studio loaded<small>Waiting for a user action</small></div></div></section>
+<section class="card wide"><h2>Integration status</h2><div id="connections" class="status">Checking local API…</div><p class="small">Local development UI · viaSocket catalog and connection SDK · Gmail draft-only workflow.</p></section>
+</div></main>
 <script type="module">
 import { connect } from "/vendor/viasocket-apps/browser.js";
-const status=document.querySelector("#status"), button=document.querySelector("#connect");
-const setStatus=(s)=>status.textContent=s;
-async function api(url,options={}){const response=await fetch(url,{...options,headers:{"Content-Type":"application/json",...(options.headers||{})}});const body=await response.json().catch(()=>({}));if(!response.ok)throw new Error(body.error||body.detail||("Request failed ("+response.status+")"));return body}
-async function refresh(){try{const result=await api("/api/integrations/status");const apps=result.apps||[];document.querySelector("#connections").textContent=apps.length?apps.map(a=>a.appName+" — connected").join("\n"):"No Gmail test connection confirmed in this running server process.";setStatus("Server reachable. Select Connect Gmail to authorize a test account.");}catch(e){setStatus("Setup error: "+e.message)}}
-button.addEventListener("click",async()=>{button.disabled=true;try{
-setStatus("Looking up Gmail in the live viaSocket catalog…");
-const apps=await api("/api/integrations/search?q=Gmail");
-const gmail=apps.find(a=>String(a.name).toLowerCase()==="gmail")||apps.find(a=>String(a.name).toLowerCase().includes("gmail"));
-if(!gmail)throw new Error("Gmail was not returned by the live catalog.");
-const {token}=await api("/api/viasocket-token");
-setStatus("A viaSocket popup will open. Sign in to your test Gmail account and approve the requested access.");
-const result=await connect({embedToken:token,serviceId:gmail.serviceId});
-setStatus("Authorization returned. Verifying and enabling Gmail through the server SDK…");
-const verified=await api("/api/integrations/connection",{method:"POST",body:JSON.stringify({serviceId:gmail.serviceId,authId:result.authId})});
-document.querySelector("#actions").textContent=(verified.actions||[]).map(a=>a.name+" — "+a.description).join("\n")||"No published actions returned.";
-setStatus("REAL SDK CONNECTION VERIFIED\nApp: "+verified.appName+"\n"+verified.verification+"\nNo email was sent.");
-await refresh();
-}catch(e){setStatus("Not connected: "+e.message+"\nIf the popup was cancelled, click Connect Gmail and try again.");}finally{button.disabled=false}});
-document.querySelector("#refresh").addEventListener("click",refresh);
+const $=id=>document.getElementById(id);let proposal=null;let busy=false;
+async function api(url,options={}){const r=await fetch(url,{...options,headers:{"Content-Type":"application/json",...(options.headers||{})}});const b=await r.json().catch(()=>({}));if(!r.ok)throw new Error(b.error||b.detail||("Request failed ("+r.status+")"));return b}
+function log(title,detail){const el=document.createElement("div");el.className="event";const b=document.createElement("b");b.textContent=title;const sm=document.createElement("small");sm.textContent=detail;el.append(b,sm);$("log").prepend(el)}
+function status(s){$("status").textContent=s}
+const scenarios={
+proposal:{subject:"Following up on the proposal",body:"Hi there,\n\nI wanted to follow up on the proposal I shared earlier. I’d be happy to answer any questions or adjust the scope to fit your priorities.\n\nWould a quick 15-minute call this week be useful?\n\nBest,\nYour Name"},
+demo:{subject:"Thanks for your time — next steps",body:"Hi there,\n\nThanks for taking the time to explore our product. I’m following up with the key next step we discussed.\n\nWould you be available for a short call this week to review any questions?\n\nBest,\nYour Name"},
+invoice:{subject:"Friendly reminder about the invoice",body:"Hi there,\n\nI hope you’re doing well. This is a friendly follow-up on the invoice we shared recently. Please let me know if you need another copy or have any questions.\n\nThanks,\nYour Name"}
+};
+$("scenario").addEventListener("change",()=>{const s=scenarios[$("scenario").value];$("subject").value=s.subject;$("body").value=s.body;log("Scenario selected",$("scenario").selectedOptions[0].text)});
+async function refresh(){try{const b=await api("/api/integrations/status");$("connections").textContent=JSON.stringify(b,null,2);log("Connection status refreshed",b.apps?.length?"Gmail connection present":"No connection stored in this server process");return b}catch(e){$("connections").textContent=e.message;return null}}
+$("refresh").addEventListener("click",refresh);
+$("connect").addEventListener("click",async e=>{const btn=e.currentTarget;btn.disabled=true;try{status("Looking up Gmail in live viaSocket catalog…");const apps=await api("/api/integrations/search?q=Gmail");const gmail=apps.find(a=>String(a.name).toLowerCase()==="gmail")||apps.find(a=>String(a.name).toLowerCase().includes("gmail"));if(!gmail)throw Error("Gmail missing from live catalog");const {token}=await api("/api/viasocket-token");status("Authorize Gmail in the viaSocket popup…");const result=await connect({embedToken:token,serviceId:gmail.serviceId});const v=await api("/api/integrations/connection",{method:"POST",body:JSON.stringify({serviceId:gmail.serviceId,authId:result.authId})});status("Gmail connected and SDK verified. Published actions: "+(v.actions||[]).map(a=>a.name).join(", "));log("Gmail connected","viaSocket SDK confirmed the connection");await refresh()}catch(e){status("Connection issue: "+e.message);log("Connection issue",e.message)}finally{btn.disabled=false}});
+$("prepare").addEventListener("click",async e=>{if(busy)return;const btn=e.currentTarget;btn.disabled=true;busy=true;try{const data={to:$("to").value.trim(),subject:$("subject").value.trim(),body:$("body").value.trim()};status("Validating and preparing proposal…");const r=await api("/api/gmail/drafts/prepare",{method:"POST",body:JSON.stringify(data)});proposal=r.draft;$("review").textContent="STATUS: AWAITING YOUR APPROVAL\n\nTo: "+proposal.to+"\nSubject: "+proposal.subject+"\n\n"+proposal.body;$("approve").disabled=false;status("Proposal prepared. No Gmail draft has been created yet.");log("Proposal prepared",proposal.to+" · awaiting human approval")}catch(err){status("Could not prepare proposal: "+err.message);log("Prepare failed",err.message)}finally{btn.disabled=false;busy=false}});
+$("approve").addEventListener("click",async e=>{if(!proposal||busy)return;if(!confirm("Approve this email and create a Gmail draft? This will not send the email."))return;const btn=e.currentTarget;btn.disabled=true;busy=true;try{status("Calling the published Gmail Create Email Draft action…");const r=await api("/api/gmail/drafts/"+encodeURIComponent(proposal.id)+"/approve",{method:"POST",body:"{}"});$("review").textContent="STATUS: "+r.draft.status+"\n\nTo: "+r.draft.to+"\nSubject: "+r.draft.subject+"\n\n"+(r.message||"");status(r.message||"Draft action completed.");log("Approval/action response",r.draft.status);proposal=null}catch(err){status("Action failed: "+err.message+"\nReview the server error before retrying.");log("Draft action failed",err.message)}finally{btn.disabled=true;busy=false;await refresh()}});
 refresh();
 </script></body></html>
