@@ -281,17 +281,36 @@ app.get("/api/gmail/drafts/pending", (_req, res) => {
 
 // Approval only marks the proposal approved. It intentionally does not send
 // mail; wiring actual Gmail Create Draft requires a confirmed action input schema.
-app.post("/api/gmail/drafts/:id/approve", (req, res) => {
-  const queue = globalThis.__flowPilotPendingDrafts || new Map();
-  const draft = queue.get(req.params.id);
-  if (!draft) return res.status(404).json({ error: "Draft proposal not found; it may have expired after a server restart." });
-  if (draft.status !== "awaiting_approval") return res.status(409).json({ error: "This proposal is not awaiting approval." });
-  draft.status = "approved_for_draft_creation";
-  draft.approvedAt = new Date().toISOString();
-  res.json({
-    draft: { id: draft.id, to: draft.to, subject: draft.subject, status: draft.status, approvedAt: draft.approvedAt },
-    message: "Approved for the next implementation step only. No Gmail draft was created and no email was sent."
-  });
+app.post("/api/gmail/drafts/:id/approve", async (req, res, next) => {
+  try {
+    const queue = globalThis.__flowPilotPendingDrafts || new Map();
+    const draft = queue.get(req.params.id);
+    if (!draft) return res.status(404).json({ error: "Draft proposal not found; it may have expired after a server restart." });
+    if (draft.status !== "awaiting_approval") return res.status(409).json({ error: "This proposal is not awaiting approval." });
+
+    const { connection } = requireGmailTestConnection(req);
+    const catalog = await getViaSocket().catalog.versions(connection.serviceId);
+    const action = catalog?.actions?.find((item) => item.name === "Create Email Draft");
+    if (!action?.action_id) return res.status(409).json({ error: "Create Email Draft is not available in the live Gmail catalog. Nothing was executed." });
+
+    // Only invoke the catalog-confirmed draft action, with plain-text fields.
+    // This endpoint never invokes a send-email action.
+    const result = await getViaSocket().runAction(connection.scriptId, action.action_id, {
+      to: draft.to,
+      subject: draft.subject,
+      messageType: "text",
+      messageBody: draft.body
+    });
+    draft.status = "draft_created";
+    draft.approvedAt = new Date().toISOString();
+    draft.createdAtGmail = new Date().toISOString();
+    draft.result = result;
+    res.json({
+      draft: { id: draft.id, to: draft.to, subject: draft.subject, status: draft.status, approvedAt: draft.approvedAt },
+      result,
+      message: "Gmail Create Email Draft action executed. This creates a draft only; it does not send the email."
+    });
+  } catch (error) { next(error); }
 });
 
 app.use((error, _req, res, _next) => {
